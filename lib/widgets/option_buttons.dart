@@ -14,8 +14,11 @@ class OptionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ElevatedButton(onPressed: onPressed, style: ElevatedButton.styleFrom(backgroundColor: color, padding: EdgeInsets.all(20)), 
-    child:Row(
+    return ElevatedButton(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+          backgroundColor: color, padding: const EdgeInsets.all(20)),
+      child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(icon, size: 30),
@@ -25,6 +28,7 @@ class OptionButton extends StatelessWidget {
             style: const TextStyle(fontSize: 24),
           ),
         ],
-      ), );
+      ),
+    );
   }
 }

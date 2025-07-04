@@ -32,7 +32,7 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
   String _statusMessage = "Processing...";
   String _appBarTitle = "Processing...";
   bool _isLoading = true;
-  List<String> _steps = [];
+  final List<String> _steps = [];
 
   Position? _position;
 
@@ -78,10 +78,11 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
     });
   }
 
-  Future<void> _sendDataToServer(String imageUrl ,String imageClass) async {
+  Future<void> _sendDataToServer(String imageUrl, String imageClass) async {
     try {
       _addStep("Sending data to server...");
-      final url = Uri.parse('https://sos-backend-uj48.onrender.com/send-request');
+      final url =
+          Uri.parse('https://sos-backend-uj48.onrender.com/send-request');
       final headers = {
         'Content-Type': 'application/json',
       };
@@ -95,7 +96,7 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
         "request_type": widget.type,
         "longitude": _position?.longitude,
         "latitude": _position?.latitude,
-        "image_classification":imageClass,
+        "image_classification": imageClass,
       };
 
       final response = await http.post(
@@ -135,7 +136,8 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
 
   Future<void> _uploadImage(File imageFile) async {
     try {
-      final url = Uri.parse('https://sos-backend-uj48.onrender.com/upload-file');
+      final url =
+          Uri.parse('https://sos-backend-uj48.onrender.com/upload-file');
       final request = http.MultipartRequest('POST', url);
 
       request.files.add(await http.MultipartFile.fromPath(
@@ -150,10 +152,10 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final imageUrl = data['imageUrl'];
-        final imageClass=data['predictionClassification'];
+        final imageClass = data['predictionClassification'];
         print(data);
         _addStep("✅ Image uploaded successfully!");
-        await _sendDataToServer(imageUrl,imageClass);
+        await _sendDataToServer(imageUrl, imageClass);
       } else {
         _addStep(
             "❌ Failed to upload image: ${response.statusCode} - ${response.reasonPhrase}");

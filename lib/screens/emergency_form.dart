@@ -126,7 +126,7 @@ class _EmergencyFormState extends State<EmergencyForm> {
           Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(10),
-              boxShadow: [
+              boxShadow: const [
                 BoxShadow(
                   color: Colors.black26,
                   blurRadius: 8,

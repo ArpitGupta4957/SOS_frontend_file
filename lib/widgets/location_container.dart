@@ -9,26 +9,26 @@ class LocationContainer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final locationProvider = Provider.of<LocationProvider>(context);
-    final Position? _position = locationProvider.currentPosition;
-    final String _error = locationProvider.locationError;
-    final bool _isLoading = locationProvider.isLoading;
+    final Position? position = locationProvider.currentPosition;
+    final String error = locationProvider.locationError;
+    final bool isLoading = locationProvider.isLoading;
 
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         // Show loading spinner when fetching location
-        if (_isLoading) const CircularProgressIndicator(),
+        if (isLoading) const CircularProgressIndicator(),
 
         // If an error occurred, display the error message
-        if (_error.isNotEmpty)
+        if (error.isNotEmpty)
           Text(
-            _error,
+            error,
             style: const TextStyle(color: Colors.red),
           ),
 
         // If the location is available, display it
-        if (!_isLoading && _position != null && _error=='')
+        if (!isLoading && position != null && error == '')
           const Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
@@ -44,10 +44,10 @@ class LocationContainer extends StatelessWidget {
           ),
 
         // Default state when waiting for location
-        if (!_isLoading && _position == null && _error.isEmpty)
+        if (!isLoading && position == null && error.isEmpty)
           const Text('Waiting for location...'),
 
-        const SizedBox(height: 16),        
+        const SizedBox(height: 16),
       ],
     );
   }
