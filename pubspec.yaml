@@ -30,6 +30,15 @@ dev_dependencies:
 
   flutter_lints: ^4.0.0
 
+  # Add flutter_launcher_icons to automatically generate app icons for Android and iOS.
+  flutter_launcher_icons: ^0.10.0
+
 flutter:
 
   uses-material-design: true
+
+# Configuration for flutter_launcher_icons. Place your icon image at 'assets/icon/app_icon.png'
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/app_icon.jpeg"
