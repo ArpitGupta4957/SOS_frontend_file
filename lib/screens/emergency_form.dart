@@ -8,6 +8,8 @@ import 'package:emergency_app/widgets/form_field.dart';
 import 'package:emergency_app/widgets/location_container.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'dart:async';
+import 'package:video_player/video_player.dart'; // Uncommented to support video preview
 //import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 //import 'package:video_player/video_player.dart';
@@ -28,6 +30,8 @@ class _EmergencyFormState extends State<EmergencyForm> {
   late Future<void> _initializeControllerFuture;
   File? _capturedImage;
   File? _recordedVideo;
+  VideoPlayerController? _videoPlayerController;
+  Timer? _recordingTimer;
   bool _isRecording = false;
   String? _errorMessage;
 
@@ -67,6 +71,8 @@ class _EmergencyFormState extends State<EmergencyForm> {
   @override
   void dispose() {
     _cameraController?.dispose();
+    _videoPlayerController?.dispose();
+    _recordingTimer?.cancel();
     super.dispose();
   }
 
@@ -89,17 +95,19 @@ class _EmergencyFormState extends State<EmergencyForm> {
   Future<void> _recordVideo() async {
     try {
       if (_isRecording) {
-        final videoFile = await _cameraController!.stopVideoRecording();
-        setState(() {
-          _recordedVideo = File(videoFile.path);
-          _isRecording = false;
-          _errorMessage = null;
-        });
+        await _stopRecording();
       } else {
         await _cameraController!.startVideoRecording();
         setState(() {
           _isRecording = true;
           _errorMessage = null;
+        });
+        // Auto-stop after 7 seconds
+        _recordingTimer?.cancel();
+        _recordingTimer = Timer(const Duration(seconds: 7), () async {
+          if (_isRecording) {
+            await _stopRecording();
+          }
         });
       }
     } catch (e) {
@@ -109,13 +117,111 @@ class _EmergencyFormState extends State<EmergencyForm> {
     }
   }
 
+  Future<void> _stopRecording() async {
+    try {
+      final videoFile = await _cameraController!.stopVideoRecording();
+      _recordingTimer?.cancel();
+      setState(() {
+        _recordedVideo = File(videoFile.path);
+        _isRecording = false;
+        _errorMessage = null;
+      });
+      await _initializeVideoPlayer();
+    } catch (e) {
+      setState(() {
+        _errorMessage = "Error stopping video recording: $e";
+      });
+    }
+  }
+
+  Future<void> _initializeVideoPlayer() async {
+    try {
+      if (_recordedVideo == null) return;
+      await _videoPlayerController?.dispose();
+      _videoPlayerController = VideoPlayerController.file(_recordedVideo!);
+      await _videoPlayerController!.initialize();
+      _videoPlayerController!.setLooping(true);
+      setState(() {});
+      // Autoplay preview
+      _videoPlayerController!.play();
+    } catch (e) {
+      setState(() {
+        _errorMessage = "Error initializing video player: $e";
+      });
+    }
+  }
+
   Widget _buildImageWidget() {
+    // Web preview for media is not supported in this widget
     if (kIsWeb) {
       return const Text(
-        "Image preview is not supported on the web.",
+        "Media preview is not supported on the web.",
         style: TextStyle(color: Colors.grey),
       );
-    } else if (_capturedImage != null) {
+    }
+
+    // Video preview takes precedence if available
+    if (_recordedVideo != null) {
+      return Column(
+        children: [
+          const Text(
+            'Recorded Video:',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 10),
+          Container(
+            height: 300,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              boxShadow: const [
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 8,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: _videoPlayerController == null ||
+                      !_videoPlayerController!.value.isInitialized
+                  ? const Center(child: CircularProgressIndicator())
+                  : GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          if (_videoPlayerController!.value.isPlaying) {
+                            _videoPlayerController!.pause();
+                          } else {
+                            _videoPlayerController!.play();
+                          }
+                        });
+                      },
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          AspectRatio(
+                            aspectRatio:
+                                _videoPlayerController!.value.aspectRatio,
+                            child: VideoPlayer(_videoPlayerController!),
+                          ),
+                          if (!_videoPlayerController!.value.isPlaying)
+                            const Icon(
+                              Icons.play_circle_fill,
+                              size: 64,
+                              color: Colors.white70,
+                            ),
+                        ],
+                      ),
+                    ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    // Otherwise show image if available
+    else if (_capturedImage != null) {
       return Column(
         children: [
           const Text(
@@ -265,6 +371,27 @@ class _EmergencyFormState extends State<EmergencyForm> {
                           ),
                         ),
                         onPressed: () {
+                          // Require at least one of photo or video
+                          if (_capturedImage == null &&
+                              _recordedVideo == null) {
+                            showDialog<void>(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: const Text('Attach media'),
+                                content: const Text(
+                                    'Please attach at least a photo or a video before submitting.'),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.of(context).pop(),
+                                    child: const Text('OK'),
+                                  ),
+                                ],
+                              ),
+                            );
+                            return;
+                          }
+
                           Navigator.push(
                             context,
                             MaterialPageRoute(
